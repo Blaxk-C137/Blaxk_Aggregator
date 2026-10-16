@@ -1,9 +1,10 @@
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as XLSX from 'xlsx';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 export interface DocumentContent {
   text: string;
@@ -131,23 +132,9 @@ export async function processXml(file: File): Promise<DocumentContent> {
   try {
     const text = await file.text();
     
-    // Pretty print XML
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(text, 'text/xml');
-    
-    // Check for parsing errors
-    const parserError = xmlDoc.querySelector('parsererror');
-    if (parserError) {
-      return {
-        text,
-        success: true,
-      };
-    }
-    
-    // Format XML nicely
-    const serializer = new XMLSerializer();
-    const formatted = serializer.serializeToString(xmlDoc);
-    
+    // Keep source unchanged; DOMParser is unavailable in Web Workers.
+    const formatted = text;
+
     return {
       text: formatted,
       success: true,

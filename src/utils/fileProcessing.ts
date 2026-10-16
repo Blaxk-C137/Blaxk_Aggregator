@@ -1,5 +1,5 @@
 import { FileItem, AppOptions, FileStats, GroupedFiles, GroupBy } from '../types';
-import { processDocument, isDocumentFile, getDocumentType } from './documentProcessor';
+import { prepareImport, type ImportProgress } from './importRules';
 
 const LANGUAGE_MAP: Record<string, string> = {
   js: 'JavaScript',
@@ -44,44 +44,29 @@ const LANGUAGE_MAP: Record<string, string> = {
   rtf: 'Rich Text Format',
 };
 
-export async function processFiles(files: File[], options: AppOptions): Promise<FileItem[]> {
+export async function processFiles(files: File[], options: AppOptions, progress?: (p: ImportProgress) => void): Promise<FileItem[]> {
   const processed: FileItem[] = [];
   
-  for (const file of files) {
-    // A selected root folder is depth 1; skip deeper paths when disabled.
-    if (!options.includeSubfolders && file.webkitRelativePath.split('/').length > 2) continue;
-    // Check file size
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > options.maxFileSize) {
-      console.warn(`Skipping ${file.name} - exceeds ${options.maxFileSize}MB limit`);
-      continue;
-    }
-
-    // Check exclude patterns
-    const shouldExclude = options.excludePatterns.some(pattern => 
-      file.webkitRelativePath?.includes(pattern) || file.name.includes(pattern)
-    );
-    if (shouldExclude) {
-      continue;
-    }
-
-    // Check file extensions filter
+  const plan = await prepareImport(files, options);
+  let completed = 0;
+  for (const file of plan.files) {
+    progress?.({ completed: completed++, total: plan.files.length, skipped: plan.skipped, name: file.name });
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
-    if (options.fileExtensions.length > 0 && !options.fileExtensions.includes(extension)) {
-      continue;
-    }
-
     try {
       // Use document processor for special file types
       let content: string;
-      if (isDocumentFile(file.name)) {
+      if (['docx','doc','pdf','xlsx','xls','csv','xml','rtf'].includes(extension)) {
+        const { processDocument } = await import('./documentProcessor');
         content = await processDocument(file);
       } else {
+        const sample = new Uint8Array(await file.slice(0,8192).arrayBuffer());
+        if (sample.includes(0)) continue;
         content = await file.text();
       }
       
-      const lines = content.split('\n').length;
-      const language = LANGUAGE_MAP[extension] || getDocumentType(file.name) || 'Unknown';
+      let lines = 1;
+      for (let i=0; i<content.length; i++) if(content.charCodeAt(i)===10) lines++;
+      const language = LANGUAGE_MAP[extension] || 'Text';
 
       processed.push({
         id: `${file.name}-${Date.now()}-${Math.random()}`,
@@ -100,6 +85,7 @@ export async function processFiles(files: File[], options: AppOptions): Promise<
     }
   }
 
+  progress?.({ completed: plan.files.length, total: plan.files.length, skipped: files.length - processed.length, name: 'Complete' });
   return processed;
 }
 
@@ -223,9 +209,7 @@ export function generateOutput(
 }
 
 function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 }
 
 export function getFileStats(files: FileItem[]): FileStats {
