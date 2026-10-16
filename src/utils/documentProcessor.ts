@@ -257,3 +257,4 @@ export function getDocumentType(filename: string): string {
   
   return typeMap[extension] || 'Document';
 }
+

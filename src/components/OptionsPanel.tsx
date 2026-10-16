@@ -129,3 +129,4 @@ export function OptionsPanel({ options, onChange, theme }: OptionsPanelProps) {
     </div>
   );
 }
+

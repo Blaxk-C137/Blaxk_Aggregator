@@ -67,3 +67,4 @@ export function TableOfContents({ files, groupBy, theme }: TableOfContentsProps)
     </div>
   );
 }
+

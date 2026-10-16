@@ -76,3 +76,4 @@ export function StatsPanel({ stats, theme }: StatsPanelProps) {
     </div>
   );
 }
+

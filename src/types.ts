@@ -36,3 +36,4 @@ export interface FileStats {
 export interface GroupedFiles {
   [key: string]: FileItem[];
 }
+

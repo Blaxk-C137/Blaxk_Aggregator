@@ -33,3 +33,4 @@ export function Logo({ theme }: LogoProps) {
     </div>
   );
 }
+

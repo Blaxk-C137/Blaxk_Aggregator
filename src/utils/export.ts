@@ -150,3 +150,4 @@ async function exportAsPDF(files: FileItem[], options: AppOptions, filename: str
 
   pdf.save(`${filename}.pdf`);
 }
+

@@ -48,6 +48,8 @@ export async function processFiles(files: File[], options: AppOptions): Promise<
   const processed: FileItem[] = [];
   
   for (const file of files) {
+    // A selected root folder is depth 1; skip deeper paths when disabled.
+    if (!options.includeSubfolders && file.webkitRelativePath.split('/').length > 2) continue;
     // Check file size
     const fileSizeMB = file.size / (1024 * 1024);
     if (fileSizeMB > options.maxFileSize) {
@@ -277,3 +279,4 @@ export function groupFiles(files: FileItem[], groupBy: GroupBy): GroupedFiles {
 
   return grouped;
 }
+

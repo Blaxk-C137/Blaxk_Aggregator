@@ -113,3 +113,4 @@ export function FileUploader({ onFilesSelected, theme }: FileUploaderProps) {
     </div>
   );
 }
+
